@@ -45,12 +45,14 @@ The system processes a video stream frame-by-frame:
 
    * Uses selected landmarks and a 3D face model.
    * OpenCV `solvePnP` estimates rotation vectors.
+   
    ![Demonstration](Adobe-Express-Proctoring-2026-03-16-14-07-29.gif)
 
 3. **Gaze Detection**
 
    * Calculates iris position relative to eye centers.
    * Determines gaze direction.
+   
    ![Demonstration](Adobe-Express-Proctoring-2026-03-16-14-09-11.gif)
 
 4. **Violation Tracking**
