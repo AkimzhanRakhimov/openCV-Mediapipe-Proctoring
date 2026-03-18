@@ -5,12 +5,12 @@ import os
 from helpers import save_report
 
 
-# Класс, который анализирует нарушения
+# Class that analyzes violations
 class CheatTracker:
 
-    # Начальные параметры трекера
+    # Initial tracker parameters
     def __init__(self):
-        # Трекер будет считать процент нарушений за количество времени n
+        # Tracker calculates the percentage of violations over a time window n
         self.duration=0
         self.native_frames_count=0
         self.banned_frames_count=0
@@ -19,53 +19,54 @@ class CheatTracker:
         self.reason=""
         self.last_time=time.time()
 
-    # Отслеживание нарушений во времени
+    # Track violations over time
     def update(self,n,threshold,output_file_path,text_1,text_2):
-        # Берем нынешнее время
+        # Get current time
         now=time.time()
-        # Duration накапливает отрезки времени между нынешним и последним фреймом
+        # Duration accumulates time between current and previous frame
         self.duration+=now-self.last_time
-        # Устанавливаем последнее время фрейма
+        # Update last frame time
         self.last_time=now
-        # Считаем общее число фреймов
+        # Count total frames
         self.native_frames_count+=1
-        # Считаем отношение фреймов с нарушениями к общему числу фреймов 
+        # Calculate ratio of violating frames to total frames
         relative_frames_count=self.banned_frames_count/self.native_frames_count
-        # Проверяем содержимое text 1 и text 2, в случае если text 1 ложно срабатывает из за моргания, то идет обработка через отдельный подкласс
+        # Analyze frame content; text_1 false positives (blinks) are handled in subclass
         self.analyse_frame(text_1=text_1,text_2=text_2)
-        # Выводим длительность окна, отношение фреймов и пиковое значение отношения фреймов
+        # Print window duration, frame ratio, and peak ratio
         print(f"Duration: {self.duration},RFC: {relative_frames_count}, Last RFC: {self.last_relation}")
-        # Если длительность окна равна n секунд, начинаем проверку
+        
+        # If time window reached n seconds, start evaluation
         if self.duration>n:
-            # Если в промежутке временного окна число нарушений превысило порог, то наказываем
+            # If violation ratio exceeds threshold, apply penalty logic
             if relative_frames_count>threshold:
-                # Если нынешнее отношение фреймов выше предыдущего, то увеличиваем его
+                # Update peak ratio if current is higher
                 if relative_frames_count>self.last_relation:
                     self.last_relation=relative_frames_count
-            # Если же нарушений не было, то сбрасываем трекер
+            # If no significant violations, reset tracker
             else:
                 self.reset()
             
-            # Здесь мы считаем разницу между последним пиковым отношением фреймов и нынешним, если оно больше 0.05, вероятно, человек перестал читерить, значит можно фиксировать нарушение 
+            # If drop from peak ratio is significant, assume cheating stopped → log violation
             if self.last_relation-relative_frames_count>=0.05 and not self.reported:
-                # Выводим сообщение о нарушении
+                # Print violation message
                 print(f"Relation of banned frames: {relative_frames_count}, Period: {int(self.duration)} seconds, Reason: {self.reason}")
-                # Извлекаем нынешнюю дату и время
+                # Get current date and time
                 dt=datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                # Подготавливаем сообщение в формат JSON
+                # Prepare JSON report
                 data={"Relation of banned frames":relative_frames_count, "Period":int(self.duration), "Reason":self.reason, "Date":dt}
-                # Сохраняем репорт
+                # Save report
                 save_report(output_file_path,data)
-                # Ставим флажок о том что репорт совершен
+                # Mark as reported
                 self.reported=True
-                # Сбрасываем трекер
+                # Reset tracker
                 self.reset()
                     
         else:
-            # Флажок репорта по умолчанию
+            # Reset reported flag by default
             self.reported=False
     
-    # Этот метод нужен чтобы ограничить трекер от ложного срабатывания при моргании, а также для записи признака нарушения    
+    # This method prevents false positives (e.g., blinking) and records violation reason    
     def analyse_frame(self,text_1,text_2):
         if text_1 or text_2:
             self.reason=""
@@ -85,7 +86,7 @@ class CheatTracker:
             self.reason=self.reason
         
             
-    # Метод для сброса переменных трекера
+    # Reset tracker variables
     def reset(self):
         self.duration=0
         self.last_relation=0
@@ -94,7 +95,8 @@ class CheatTracker:
         self.reason=""
         self.last_time=time.time()
 
-# Отдельный подкласс, который обрабатывает взгляд вниз и защищает от ложного срабатывания при моргании
+
+# Separate subclass to handle downward gaze and avoid false positives from blinking
 class BlinkCheatTracker(CheatTracker):
     def __init__(self):
         super().__init__()
@@ -104,4 +106,3 @@ class BlinkCheatTracker(CheatTracker):
             self.banned_frames_count+=1
             if self.banned_frames_count/self.native_frames_count>0.2:
                 self.reason=text_1
-        
