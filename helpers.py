@@ -2,7 +2,8 @@ import cv2
 import time
 import os
 import json
-# считаем фпс
+
+# Calculate FPS
 def fps_count(start,frame):
     end=time.time()
     totalTime=end-start
@@ -11,23 +12,23 @@ def fps_count(start,frame):
     cv2.putText(frame, f'FPS: {int(fps)}',(20,450),cv2.FONT_HERSHEY_SIMPLEX,0.5,(0,0,255),2)
 
 def save_report(output_file_path,data):
-    # Если отчет существует, то дописываем новое нарушение в него
+    # If the report exists, append a new violation to it
     if os.path.exists(output_file_path):
         with open(output_file_path,"r+") as f:
             try:
-                # Загружаем старый список нарушений
+                # Load the existing list of violations
                 old_data=json.load(f)
             except json.JSONDecodeError:
-                # В случае ошибки создаем новый пустой список нарушений
+                # If an error occurs, create a new empty list of violations
                 old_data=[]
-            # Добавляем новое нарушение в список
+            # Add new violation to the list
             old_data.append(data)
-            # Стираем старый список и записываем обновленный
+            # Clear old data and write updated list
             f.seek(0)
-            # Завершаем дамп
+            # Finish writing JSON
             json.dump(old_data,f,indent=2)
     else:
-        # Если файла нет, то создаем новый
+        # If file does not exist, create a new one
         with open(output_file_path,"w") as f:
-            # Завершаем дамп
+            # Finish writing JSON
             json.dump([data],f)
